@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Todo Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="src/scss/main.scss">
+    <script type="module" src="src/js/controller.js"></script>
+</head>
+<body class="bg-gradient-to-br from-indigo-900 via-gray-800 to-purple-900 min-h-screen flex items-center justify-center font-sans">
+    <div class="container max-w-4xl mx-auto p-8 bg-white rounded-2xl shadow-2xl my-10">
+        <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Pro Todo Manager</h1>
+
+        <!-- Search Bar -->
+        <div class="search mb-6">
+            <input 
+                type="text" 
+                class="search__field w-full p-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200" 
+                placeholder="Search tasks..."
+            >
+        </div>
+
+        <!-- Add Task Form -->
+        <form class="add-task mb-8 bg-gray-50 p-6 rounded-lg shadow-md">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Task Title</label>
+                    <input 
+                        type="text" 
+                        name="task-title" 
+                        class="task-title w-full p-3 mt-1 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                        placeholder="Enter task title..." 
+                        required
+                    >
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Category</label>
+                    <select 
+                        name="category" 
+                        class="category w-full p-3 mt-1 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                        <option value="personal">Personal</option>
+                        <option value="work">Work</option>
+                        <option value="urgent">Urgent</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Due Date</label>
+                    <input 
+                        type="date" 
+                        name="due-date" 
+                        class="due-date w-full p-3 mt-1 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Priority</label>
+                    <select 
+                        name="priority" 
+                        class="priority w-full p-3 mt-1 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+            </div>
+            <button 
+                type="submit" 
+                class="btn-add-task mt-4 w-full bg-indigo-600 text-white p-3 rounded-lg hover:bg-indigo-700 transition duration-200"
+            >
+                Add Task
+            </button>
+        </form>
+
+        <!-- Filter Controls -->
+        <div class="filters flex flex-wrap gap-4 mb-6">
+            <select class="filter-category p-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="all">All Categories</option>
+                <option value="personal">Personal</option>
+                <option value="work">Work</option>
+                <option value="urgent">Urgent</option>
+                <option value="other">Other</option>
+            </select>
+            <select class="filter-status p-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+            </select>
+            <select class="filter-priority p-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="all">All Priorities</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+            </select>
+            <button class="btn-clear-completed bg-red-500 text-white p-3 rounded-lg hover:bg-red-600 transition duration-200">
+                Clear Completed
+            </button>
+        </div>
+
+        <!-- Task List -->
+        <ul class="task-list space-y-4" draggable="true">
+            <!-- Tasks will be rendered here -->
+        </ul>
+    </div>
+</body>
+</html>

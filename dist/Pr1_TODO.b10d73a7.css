@@ -1,0 +1,52 @@
+body {
+  font-family: Nunito Sans, sans-serif;
+}
+
+.task-card {
+  transition: transform .3s, box-shadow .3s, opacity .3s;
+  animation: .3s ease-out slideIn;
+}
+
+.task-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px #00000026;
+}
+
+.task-card.completed {
+  opacity: .7;
+  background-color: #f3f4f6;
+}
+
+.task-card.priority-high {
+  border-left: 5px solid #ef4444;
+}
+
+.task-card.priority-medium {
+  border-left: 5px solid #f59e0b;
+}
+
+.task-card.priority-low {
+  border-left: 5px solid #10b981;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.task-list.dragging .task-card {
+  opacity: .5;
+}
+
+.task-list.dragging .task-card.dragged {
+  opacity: .2;
+  transform: scale(.95);
+}
+/*# sourceMappingURL=Pr1_TODO.b10d73a7.css.map */
