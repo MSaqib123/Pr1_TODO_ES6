@@ -668,13 +668,16 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
 
 },{}],"7dWZ8":[function(require,module,exports,__globalThis) {
 var _modelJs = require("./model.js");
-var _viewJs = require("./view.js");
+var _taskViewJs = require("./views/components/taskView.js");
+var _addTaskViewJs = require("./views/components/addTaskView.js");
+var _searchViewJs = require("./views/components/searchView.js");
+var _filterViewJs = require("./views/components/filterView.js");
 class TodoController {
     #model = new (0, _modelJs.TodoModel)();
-    #taskView = new (0, _viewJs.TaskView)();
-    #addTaskView = new (0, _viewJs.AddTaskView)();
-    #searchView = new (0, _viewJs.SearchView)();
-    #filterView = new (0, _viewJs.FilterView)();
+    #taskView = new (0, _taskViewJs.TaskView)();
+    #addTaskView = new (0, _addTaskViewJs.AddTaskView)();
+    #searchView = new (0, _searchViewJs.SearchView)();
+    #filterView = new (0, _filterViewJs.FilterView)();
     constructor(){
         this.#init();
     }
@@ -736,7 +739,7 @@ class TodoController {
 }
 new TodoController();
 
-},{"./model.js":"3QBkH","./view.js":"h9VSW"}],"3QBkH":[function(require,module,exports,__globalThis) {
+},{"./model.js":"3QBkH","./views/components/taskView.js":"6ONcW","./views/components/addTaskView.js":"aMPTK","./views/components/searchView.js":"fiKvz","./views/components/filterView.js":"aAQTq"}],"3QBkH":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "TodoModel", ()=>TodoModel);
@@ -847,54 +850,12 @@ exports.export = function(dest, destName, get) {
     });
 };
 
-},{}],"h9VSW":[function(require,module,exports,__globalThis) {
+},{}],"6ONcW":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "View", ()=>View);
 parcelHelpers.export(exports, "TaskView", ()=>TaskView);
-parcelHelpers.export(exports, "AddTaskView", ()=>AddTaskView);
-parcelHelpers.export(exports, "SearchView", ()=>SearchView);
-parcelHelpers.export(exports, "FilterView", ()=>FilterView);
-class View {
-    _parentElement;
-    _data;
-    render(data, render = true) {
-        if (!data || Array.isArray(data) && data.length === 0) return this.renderMessage('No tasks found.');
-        this._data = data;
-        const markup = this._generateMarkup();
-        if (!render) return markup;
-        this._clear();
-        this._parentElement.insertAdjacentHTML('afterbegin', markup);
-    }
-    _clear() {
-        this._parentElement.innerHTML = '';
-    }
-    renderSpinner() {
-        const markup = `
-            <div class="flex justify-center items-center py-6">
-                <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"></path>
-                </svg>
-            </div>
-        `;
-        this._clear();
-        this._parentElement.insertAdjacentHTML('afterbegin', markup);
-    }
-    renderMessage(message) {
-        const markup = `
-            <div class="text-center py-6 text-gray-600">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <p class="mt-2">${message}</p>
-            </div>
-        `;
-        this._clear();
-        this._parentElement.insertAdjacentHTML('afterbegin', markup);
-    }
-}
-class TaskView extends View {
+var _viewJs = require("../view.js");
+class TaskView extends (0, _viewJs.View) {
     _parentElement = document.querySelector('.task-list');
     _generateMarkup() {
         return this._data.map((todo)=>`
@@ -915,19 +876,15 @@ class TaskView extends View {
         `).join('');
     }
     addHandlerToggleTask(handler) {
-        this._parentElement.addEventListener('change', (e)=>{
-            if (e.target.classList.contains('toggle-task')) {
-                const id = e.target.closest('.task-card').dataset.id;
-                handler(id);
-            }
+        this.addEventDelegate('.toggle-task', 'change', (e, target)=>{
+            const id = target.closest('.task-card').dataset.id;
+            handler(id);
         });
     }
     addHandlerDeleteTask(handler) {
-        this._parentElement.addEventListener('click', (e)=>{
-            if (e.target.closest('.btn-delete-task')) {
-                const id = e.target.closest('.task-card').dataset.id;
-                handler(id);
-            }
+        this.addEventDelegate('.btn-delete-task', 'click', (e, target)=>{
+            const id = target.closest('.task-card').dataset.id;
+            handler(id);
         });
     }
     addHandlerDragAndDrop(handler) {
@@ -960,50 +917,162 @@ class TaskView extends View {
         });
     }
 }
-class AddTaskView extends View {
+
+},{"../view.js":"2kjY2","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"2kjY2":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "View", ()=>View);
+class View {
+    _parentElement;
+    _data;
+    constructor(){
+        this._validateParentElement();
+    }
+    _validateParentElement() {
+        if (!this._parentElement) throw new Error('Parent element not found. Ensure the selector is correct.');
+    }
+    render(data, render = true) {
+        try {
+            if (!data || Array.isArray(data) && data.length === 0) return this.renderMessage('No data available.');
+            this._data = data;
+            const markup = this._generateMarkup();
+            if (!render) return markup;
+            this._clear();
+            this._parentElement.insertAdjacentHTML('afterbegin', markup);
+        } catch (err) {
+            console.error('Render error:', err);
+            this.renderMessage('Error rendering content. Please try again.');
+        }
+    }
+    update(data) {
+        try {
+            this._data = data;
+            const newMarkup = this._generateMarkup();
+            const newDOM = document.createRange().createContextualFragment(newMarkup);
+            const newElements = Array.from(newDOM.querySelectorAll('*'));
+            const curElements = Array.from(this._parentElement.querySelectorAll('*'));
+            newElements.forEach((newEl, i)=>{
+                const curEl = curElements[i];
+                if (!newEl.isEqualNode(curEl)) {
+                    if (newEl.firstChild?.nodeValue?.trim()) curEl.textContent = newEl.textContent;
+                    Array.from(newEl.attributes).forEach((attr)=>{
+                        curEl.setAttribute(attr.name, attr.value);
+                    });
+                }
+            });
+        } catch (err) {
+            console.error('Update error:', err);
+            this.renderMessage('Error updating content.');
+        }
+    }
+    _clear() {
+        this._parentElement.innerHTML = '';
+    }
+    renderSpinner() {
+        const markup = `
+            <div class="flex justify-center items-center py-6">
+                <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"></path>
+                </svg>
+            </div>
+        `;
+        this._clear();
+        this._parentElement.insertAdjacentHTML('afterbegin', markup);
+    }
+    renderMessage(message) {
+        const markup = `
+            <div class="text-center py-6 text-gray-600">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p class="mt-2">${message}</p>
+            </div>
+        `;
+        this._clear();
+        this._parentElement.insertAdjacentHTML('afterbegin', markup);
+    }
+    addEventDelegate(selector, eventType, handler) {
+        this._parentElement.addEventListener(eventType, (e)=>{
+            const target = e.target.closest(selector);
+            if (target) handler(e, target);
+        });
+    }
+}
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"aMPTK":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "AddTaskView", ()=>AddTaskView);
+var _viewJs = require("../view.js");
+class AddTaskView extends (0, _viewJs.View) {
     _parentElement = document.querySelector('.add-task');
     addHandlerAddTask(handler) {
         this._parentElement.addEventListener('submit', (e)=>{
             e.preventDefault();
-            const formData = new FormData(this._parentElement);
-            const todo = {
-                title: formData.get('task-title'),
-                category: formData.get('category'),
-                dueDate: formData.get('due-date'),
-                priority: formData.get('priority')
-            };
-            handler(todo);
-            this._parentElement.reset();
+            try {
+                const formData = new FormData(this._parentElement);
+                const todo = {
+                    title: formData.get('task-title'),
+                    category: formData.get('category'),
+                    dueDate: formData.get('due-date'),
+                    priority: formData.get('priority')
+                };
+                if (!todo.title.trim()) throw new Error('Task title cannot be empty.');
+                handler(todo);
+                this._parentElement.reset();
+            } catch (err) {
+                this.renderMessage(err.message);
+            }
         });
     }
 }
-class SearchView extends View {
+
+},{"../view.js":"2kjY2","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"fiKvz":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "SearchView", ()=>SearchView);
+var _viewJs = require("../view.js");
+class SearchView extends (0, _viewJs.View) {
     _parentElement = document.querySelector('.search');
     addHandlerSearch(handler) {
-        this._parentElement.querySelector('.search__field').addEventListener('input', (e)=>{
-            handler(e.target.value);
+        this.addEventDelegate('.search__field', 'input', (e)=>{
+            handler(e.target.value.trim());
         });
     }
 }
-class FilterView extends View {
+
+},{"../view.js":"2kjY2","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"aAQTq":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "FilterView", ()=>FilterView);
+var _viewJs = require("../view.js");
+class FilterView extends (0, _viewJs.View) {
     _parentElement = document.querySelector('.filters');
     addHandlerFilter(handler) {
         this._parentElement.querySelectorAll('select').forEach((el)=>{
             el.addEventListener('change', ()=>{
-                const filters = {
-                    category: this._parentElement.querySelector('.filter-category').value,
-                    status: this._parentElement.querySelector('.filter-status').value,
-                    priority: this._parentElement.querySelector('.filter-priority').value
-                };
-                handler(filters);
+                try {
+                    const filters = {
+                        category: this._parentElement.querySelector('.filter-category').value,
+                        status: this._parentElement.querySelector('.filter-status').value,
+                        priority: this._parentElement.querySelector('.filter-priority').value
+                    };
+                    handler(filters);
+                } catch (err) {
+                    console.error('Filter error:', err);
+                    this.renderMessage('Error applying filters.');
+                }
             });
         });
     }
     addHandlerClearCompleted(handler) {
-        this._parentElement.querySelector('.btn-clear-completed').addEventListener('click', handler);
+        this.addEventDelegate('.btn-clear-completed', 'click', ()=>{
+            handler();
+        });
     }
 }
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}]},["5DuvQ","7dWZ8"], "7dWZ8", "parcelRequire31b8", {})
+},{"../view.js":"2kjY2","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}]},["5DuvQ","7dWZ8"], "7dWZ8", "parcelRequire31b8", {})
 
 //# sourceMappingURL=Pr1_TODO.4a59a05f.js.map

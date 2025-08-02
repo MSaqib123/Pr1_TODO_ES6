@@ -1,5 +1,8 @@
 import { TodoModel } from './model.js';
-import { TaskView, AddTaskView, SearchView, FilterView } from './view.js';
+import { TaskView } from './views/components/taskView.js';
+import { AddTaskView } from './views/components/addTaskView.js';
+import { SearchView } from './views/components/searchView.js';
+import { FilterView } from './views/components/filterView.js';
 
 class TodoController {
     #model = new TodoModel();
