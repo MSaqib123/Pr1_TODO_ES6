@@ -2,12 +2,48 @@ body {
   font-family: Nunito Sans, sans-serif;
 }
 
-.task-card {
+.tabs ul {
+  @apply flex border-b-2 border-gray-200 bg-gray-50 rounded-t-lg;
+}
+
+.tab-link {
+  @apply px-8 py-4 cursor-pointer text-gray-700 font-semibold text-lg transition-all duration-200 ease-in-out;
+
+  text-align: center;
+  background-color: #e5e7eb;
+  border: 1px solid #d1d5db;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  min-width: 120px;
+  margin-right: 4px;
+}
+
+.tab-link.active {
+  @apply text-indigo-700 bg-white;
+
+  border: 1px solid #d1d5db;
+  border-bottom: 2px solid #4f46e5;
+  box-shadow: 0 -2px 4px #0000001a;
+}
+
+.tab-link:hover {
+  @apply text-indigo-600 bg-gray-100;
+}
+
+.tab-content-container .tab-content {
+  @apply mt-4 p-4 bg-white rounded-b-lg shadow-md;
+}
+
+.tab-content-container .tab-content.hidden {
+  display: none !important;
+}
+
+.task-card, .routine-card {
   transition: transform .3s, box-shadow .3s, opacity .3s;
   animation: .3s ease-out slideIn;
 }
 
-.task-card:hover {
+.task-card:hover, .routine-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 10px 20px #00000026;
 }
@@ -27,6 +63,27 @@ body {
 
 .task-card.priority-low {
   border-left: 5px solid #10b981;
+}
+
+.task-card.recurrence-daily:before, .task-card.recurrence-weekly:before, .task-card.recurrence-monthly:before {
+  content: "";
+  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  display: inline-block;
+}
+
+.task-card.recurrence-daily:before {
+  background-color: #3b82f6;
+}
+
+.task-card.recurrence-weekly:before {
+  background-color: #8b5cf6;
+}
+
+.task-card.recurrence-monthly:before {
+  background-color: #ec4899;
 }
 
 @keyframes slideIn {

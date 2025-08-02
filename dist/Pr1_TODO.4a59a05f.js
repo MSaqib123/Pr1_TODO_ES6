@@ -668,20 +668,35 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
 
 },{}],"7dWZ8":[function(require,module,exports,__globalThis) {
 var _modelJs = require("./model.js");
+var _routineModelJs = require("./routineModel.js");
 var _taskViewJs = require("./views/components/taskView.js");
 var _addTaskViewJs = require("./views/components/addTaskView.js");
 var _searchViewJs = require("./views/components/searchView.js");
 var _filterViewJs = require("./views/components/filterView.js");
+var _routineViewJs = require("./views/components/routineView.js");
+var _addRoutineViewJs = require("./views/components/addRoutineView.js");
 class TodoController {
     #model = new (0, _modelJs.TodoModel)();
+    #routineModel;
     #taskView = new (0, _taskViewJs.TaskView)();
     #addTaskView = new (0, _addTaskViewJs.AddTaskView)();
     #searchView = new (0, _searchViewJs.SearchView)();
     #filterView = new (0, _filterViewJs.FilterView)();
+    #routineView = new (0, _routineViewJs.RoutineView)();
+    #addRoutineView = new (0, _addRoutineViewJs.AddRoutineView)();
+    #currentTab = 'tasks-tab';
     constructor(){
+        try {
+            this.#routineModel = new (0, _routineModelJs.RoutineModel)();
+        } catch (err) {
+            console.error('Failed to initialize RoutineModel:', err);
+            this.#routineView.renderMessage('Error loading routines. Please refresh the page.');
+        }
         this.#init();
     }
     #init() {
+        // Initialize tabs first to ensure UI renders
+        this.#taskView.setupTabs(this.#controlTabChange.bind(this));
         this.#addTaskView.addHandlerAddTask(this.#controlAddTask.bind(this));
         this.#taskView.addHandlerToggleTask(this.#controlToggleTask.bind(this));
         this.#taskView.addHandlerDeleteTask(this.#controlDeleteTask.bind(this));
@@ -689,12 +704,41 @@ class TodoController {
         this.#searchView.addHandlerSearch(this.#controlSearch.bind(this));
         this.#filterView.addHandlerFilter(this.#controlFilter.bind(this));
         this.#filterView.addHandlerClearCompleted(this.#controlClearCompleted.bind(this));
+        this.#addRoutineView.addHandlerAddRoutine(this.#controlAddRoutine.bind(this));
+        this.#routineView.addHandlerDeleteRoutine(this.#controlDeleteRoutine.bind(this));
         this.#controlFilter({
             category: 'all',
             status: 'all',
             priority: 'all',
             recurrence: 'all'
         });
+        if (this.#routineModel) {
+            this.#routineView.render(this.#routineModel.getRoutines());
+            this.#setupAlarms();
+        }
+    }
+    async #setupAlarms() {
+        const permission = await this.#routineView.requestNotificationPermission();
+        if (!permission) {
+            this.#routineView.renderMessage('Notifications not enabled. Please allow notifications for alarms.');
+            return;
+        }
+        setInterval(()=>{
+            const now = new Date();
+            // Adjust for PKT (UTC+5)
+            const currentTime = now.toLocaleTimeString('en-US', {
+                timeZone: 'Asia/Karachi',
+                hour12: false
+            }).slice(0, 5); // HH:MM
+            const routines = this.#routineModel.checkAlarms(currentTime);
+            routines.forEach((routine)=>{
+                this.#routineView.showNotification(routine.title, {
+                    body: `Time to start your routine! ${routine.notes ? `Notes: ${routine.notes}` : ''}`,
+                    icon: 'https://via.placeholder.com/32',
+                    requireInteraction: true
+                });
+            });
+        }, 60000); // Check every minute
     }
     #controlAddTask(todo) {
         try {
@@ -733,6 +777,29 @@ class TodoController {
         this.#model.clearCompleted();
         this.#renderTasks();
     }
+    #controlAddRoutine(routine) {
+        if (!this.#routineModel) return;
+        try {
+            this.#routineModel.addRoutine(routine);
+            this.#routineView.render(this.#routineModel.getRoutines());
+        } catch (err) {
+            this.#addRoutineView.renderMessage(err.message);
+        }
+    }
+    #controlDeleteRoutine(id) {
+        if (!this.#routineModel) return;
+        this.#routineModel.deleteRoutine(id);
+        this.#routineView.render(this.#routineModel.getRoutines());
+    }
+    #controlTabChange(tab) {
+        this.#currentTab = tab;
+        console.log(`Switched to tab: ${tab}`);
+        if (tab === 'tasks-tab') this.#renderTasks();
+        else if (tab === 'routines-tab') {
+            if (this.#routineModel) this.#routineView.render(this.#routineModel.getRoutines());
+            else this.#routineView.renderMessage('Routines unavailable due to initialization error.');
+        }
+    }
     #renderTasks() {
         const filters = {
             category: document.querySelector('.filter-category').value,
@@ -746,7 +813,7 @@ class TodoController {
 }
 new TodoController();
 
-},{"./model.js":"3QBkH","./views/components/taskView.js":"6ONcW","./views/components/addTaskView.js":"aMPTK","./views/components/searchView.js":"fiKvz","./views/components/filterView.js":"aAQTq"}],"3QBkH":[function(require,module,exports,__globalThis) {
+},{"./model.js":"3QBkH","./views/components/taskView.js":"6ONcW","./views/components/addTaskView.js":"aMPTK","./views/components/searchView.js":"fiKvz","./views/components/filterView.js":"aAQTq","./routineModel.js":"hZQcY","./views/components/routineView.js":"710pk","./views/components/addRoutineView.js":"f1gW0"}],"3QBkH":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "TodoModel", ()=>TodoModel);
@@ -952,23 +1019,23 @@ class TaskView extends (0, _viewJs.View) {
         });
     }
     addHandlerDragAndDrop(handler) {
-        this._parentElement.addEventListener('dragstart', (e)=>{
+        this._parentElement?.addEventListener('dragstart', (e)=>{
             if (e.target.classList.contains('task-card')) {
                 e.target.classList.add('dragged');
                 this._parentElement.classList.add('dragging');
                 e.dataTransfer.setData('text/plain', e.target.dataset.id);
             }
         });
-        this._parentElement.addEventListener('dragend', (e)=>{
+        this._parentElement?.addEventListener('dragend', (e)=>{
             if (e.target.classList.contains('task-card')) {
                 e.target.classList.remove('dragged');
                 this._parentElement.classList.remove('dragging');
             }
         });
-        this._parentElement.addEventListener('dragover', (e)=>{
+        this._parentElement?.addEventListener('dragover', (e)=>{
             e.preventDefault();
         });
-        this._parentElement.addEventListener('drop', (e)=>{
+        this._parentElement?.addEventListener('drop', (e)=>{
             e.preventDefault();
             const draggedId = e.dataTransfer.getData('text/plain');
             const target = e.target.closest('.task-card');
@@ -993,7 +1060,14 @@ class View {
         this._validateParentElement();
     }
     _validateParentElement() {
-        if (!this._parentElement) throw new Error('Parent element not found. Ensure the selector is correct.');
+        if (!this._parentElement) {
+            console.warn('Parent element not found. Waiting for DOM...');
+            // Retry after DOM is loaded
+            document.addEventListener('DOMContentLoaded', ()=>{
+                this._parentElement = this._parentElement || document.querySelector(this._parentElement?.selector);
+                if (!this._parentElement) throw new Error('Parent element not found after DOM load. Ensure the selector is correct.');
+            });
+        }
     }
     render(data, render = true) {
         try {
@@ -1030,7 +1104,7 @@ class View {
         }
     }
     _clear() {
-        this._parentElement.innerHTML = '';
+        if (this._parentElement) this._parentElement.innerHTML = '';
     }
     renderSpinner() {
         const markup = `
@@ -1042,7 +1116,7 @@ class View {
             </div>
         `;
         this._clear();
-        this._parentElement.insertAdjacentHTML('afterbegin', markup);
+        this._parentElement?.insertAdjacentHTML('afterbegin', markup);
     }
     renderMessage(message) {
         const markup = `
@@ -1054,13 +1128,60 @@ class View {
             </div>
         `;
         this._clear();
-        this._parentElement.insertAdjacentHTML('afterbegin', markup);
+        this._parentElement?.insertAdjacentHTML('afterbegin', markup);
     }
     addEventDelegate(selector, eventType, handler) {
-        this._parentElement.addEventListener(eventType, (e)=>{
+        if (this._parentElement) this._parentElement.addEventListener(eventType, (e)=>{
             const target = e.target.closest(selector);
             if (target) handler(e, target);
         });
+    }
+    getFormData(formElement) {
+        const formData = new FormData(formElement);
+        const data = Object.fromEntries(formData);
+        return Object.keys(data).reduce((obj, key)=>{
+            obj[key] = data[key].trim() || null;
+            return obj;
+        }, {});
+    }
+    formatTime(time) {
+        if (!time) return '';
+        const [hours, minutes] = time.split(':');
+        const period = +hours >= 12 ? 'PM' : 'AM';
+        const hour = +hours % 12 || 12;
+        return `${hour}:${minutes} ${period}`;
+    }
+    setupTabs(handler) {
+        const tabs = document.querySelectorAll('.tab-link');
+        const contents = document.querySelectorAll('.tab-content');
+        if (!tabs.length || !contents.length) {
+            console.error('Tabs or content not found. Check .tab-link and .tab-content selectors.');
+            return;
+        }
+        tabs.forEach((tab)=>{
+            tab.addEventListener('click', ()=>{
+                tabs.forEach((t)=>t.classList.remove('active'));
+                contents.forEach((c)=>c.classList.add('hidden'));
+                tab.classList.add('active');
+                const content = document.getElementById(tab.dataset.tab);
+                if (content) {
+                    content.classList.remove('hidden');
+                    handler(tab.dataset.tab);
+                } else console.error(`Tab content for ${tab.dataset.tab} not found.`);
+            });
+        });
+    }
+    async requestNotificationPermission() {
+        if (!('Notification' in window)) {
+            console.warn('Notifications not supported in this browser.');
+            return false;
+        }
+        if (Notification.permission === 'granted') return true;
+        const permission = await Notification.requestPermission();
+        return permission === 'granted';
+    }
+    showNotification(title, options) {
+        if (Notification.permission === 'granted') new Notification(title, options);
     }
 }
 
@@ -1134,6 +1255,108 @@ class FilterView extends (0, _viewJs.View) {
     addHandlerClearCompleted(handler) {
         this.addEventDelegate('.btn-clear-completed', 'click', ()=>{
             handler();
+        });
+    }
+}
+
+},{"../view.js":"2kjY2","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"hZQcY":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "RoutineModel", ()=>RoutineModel);
+class RoutineModel {
+    #routines = [];
+    constructor(){
+        this.loadRoutines();
+    }
+    getRoutines() {
+        return this.#routines;
+    }
+    addRoutine(routine) {
+        if (routine.startTime && routine.endTime && routine.startTime >= routine.endTime) throw new Error('End time must be after start time.');
+        this.#routines.push({
+            id: crypto.randomUUID(),
+            title: routine.title,
+            notes: routine.notes || null,
+            startTime: routine.startTime,
+            endTime: routine.endTime || null,
+            createdAt: new Date().toISOString()
+        });
+        this.#persistRoutines();
+    }
+    deleteRoutine(id) {
+        this.#routines = this.#routines.filter((r)=>r.id !== id);
+        this.#persistRoutines();
+    }
+    checkAlarms(currentTime) {
+        return this.#routines.filter((routine)=>routine.startTime === currentTime);
+    }
+    #persistRoutines() {
+        localStorage.setItem('routines', JSON.stringify(this.#routines));
+    }
+    loadRoutines() {
+        const stored = localStorage.getItem('routines');
+        if (stored) this.#routines = JSON.parse(stored);
+    }
+}
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"710pk":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "RoutineView", ()=>RoutineView);
+var _viewJs = require("../view.js");
+class RoutineView extends (0, _viewJs.View) {
+    _parentElement = document.querySelector('.routine-list');
+    _generateMarkup() {
+        return this._data.map((routine)=>`
+            <li class="routine-card bg-gray-100 p-4 rounded-lg flex justify-between items-center" data-id="${routine.id}">
+                <div class="flex flex-col">
+                    <h3 class="text-lg font-semibold text-gray-800">${routine.title}</h3>
+                    <p class="text-sm text-gray-600">
+                        Time: ${this.formatTime(routine.startTime)} ${routine.endTime ? `- ${this.formatTime(routine.endTime)}` : ''} 
+                        ${routine.notes ? `| Notes: ${routine.notes}` : ''}
+                    </p>
+                </div>
+                <button class="btn-delete-routine text-red-500 hover:text-red-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </li>
+        `).join('');
+    }
+    addHandlerDeleteRoutine(handler) {
+        this.addEventDelegate('.btn-delete-routine', 'click', (e, target)=>{
+            const id = target.closest('.routine-card').dataset.id;
+            handler(id);
+        });
+    }
+}
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT","../view.js":"2kjY2"}],"f1gW0":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "AddRoutineView", ()=>AddRoutineView);
+var _viewJs = require("../view.js");
+class AddRoutineView extends (0, _viewJs.View) {
+    _parentElement = document.querySelector('.add-routine');
+    addHandlerAddRoutine(handler) {
+        this._parentElement.addEventListener('submit', (e)=>{
+            e.preventDefault();
+            try {
+                const data = this.getFormData(this._parentElement);
+                if (!data['routine-title']) throw new Error('Routine title cannot be empty.');
+                if (!data['start-time']) throw new Error('Start time is required.');
+                const routine = {
+                    title: data['routine-title'],
+                    notes: data.notes,
+                    startTime: data['start-time'],
+                    endTime: data['end-time']
+                };
+                handler(routine);
+                this._parentElement.reset();
+            } catch (err) {
+                this.renderMessage(err.message);
+            }
         });
     }
 }

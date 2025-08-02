@@ -42,7 +42,7 @@ export class TaskView extends View {
     }
 
     addHandlerDragAndDrop(handler) {
-        this._parentElement.addEventListener('dragstart', e => {
+        this._parentElement?.addEventListener('dragstart', e => {
             if (e.target.classList.contains('task-card')) {
                 e.target.classList.add('dragged');
                 this._parentElement.classList.add('dragging');
@@ -50,18 +50,18 @@ export class TaskView extends View {
             }
         });
 
-        this._parentElement.addEventListener('dragend', e => {
+        this._parentElement?.addEventListener('dragend', e => {
             if (e.target.classList.contains('task-card')) {
                 e.target.classList.remove('dragged');
                 this._parentElement.classList.remove('dragging');
             }
         });
 
-        this._parentElement.addEventListener('dragover', e => {
+        this._parentElement?.addEventListener('dragover', e => {
             e.preventDefault();
         });
 
-        this._parentElement.addEventListener('drop', e => {
+        this._parentElement?.addEventListener('drop', e => {
             e.preventDefault();
             const draggedId = e.dataTransfer.getData('text/plain');
             const target = e.target.closest('.task-card');

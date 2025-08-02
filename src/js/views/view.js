@@ -8,7 +8,14 @@ export class View {
 
     _validateParentElement() {
         if (!this._parentElement) {
-            throw new Error('Parent element not found. Ensure the selector is correct.');
+            console.warn('Parent element not found. Waiting for DOM...');
+            // Retry after DOM is loaded
+            document.addEventListener('DOMContentLoaded', () => {
+                this._parentElement = this._parentElement || document.querySelector(this._parentElement?.selector);
+                if (!this._parentElement) {
+                    throw new Error('Parent element not found after DOM load. Ensure the selector is correct.');
+                }
+            });
         }
     }
 
@@ -56,7 +63,9 @@ export class View {
     }
 
     _clear() {
-        this._parentElement.innerHTML = '';
+        if (this._parentElement) {
+            this._parentElement.innerHTML = '';
+        }
     }
 
     renderSpinner() {
@@ -69,7 +78,7 @@ export class View {
             </div>
         `;
         this._clear();
-        this._parentElement.insertAdjacentHTML('afterbegin', markup);
+        this._parentElement?.insertAdjacentHTML('afterbegin', markup);
     }
 
     renderMessage(message) {
@@ -82,15 +91,73 @@ export class View {
             </div>
         `;
         this._clear();
-        this._parentElement.insertAdjacentHTML('afterbegin', markup);
+        this._parentElement?.insertAdjacentHTML('afterbegin', markup);
     }
 
     addEventDelegate(selector, eventType, handler) {
-        this._parentElement.addEventListener(eventType, e => {
-            const target = e.target.closest(selector);
-            if (target) {
-                handler(e, target);
-            }
+        if (this._parentElement) {
+            this._parentElement.addEventListener(eventType, e => {
+                const target = e.target.closest(selector);
+                if (target) {
+                    handler(e, target);
+                }
+            });
+        }
+    }
+
+    getFormData(formElement) {
+        const formData = new FormData(formElement);
+        const data = Object.fromEntries(formData);
+        return Object.keys(data).reduce((obj, key) => {
+            obj[key] = data[key].trim() || null;
+            return obj;
+        }, {});
+    }
+
+    formatTime(time) {
+        if (!time) return '';
+        const [hours, minutes] = time.split(':');
+        const period = +hours >= 12 ? 'PM' : 'AM';
+        const hour = +hours % 12 || 12;
+        return `${hour}:${minutes} ${period}`;
+    }
+
+    setupTabs(handler) {
+        const tabs = document.querySelectorAll('.tab-link');
+        const contents = document.querySelectorAll('.tab-content');
+        if (!tabs.length || !contents.length) {
+            console.error('Tabs or content not found. Check .tab-link and .tab-content selectors.');
+            return;
+        }
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                contents.forEach(c => c.classList.add('hidden'));
+                tab.classList.add('active');
+                const content = document.getElementById(tab.dataset.tab);
+                if (content) {
+                    content.classList.remove('hidden');
+                    handler(tab.dataset.tab);
+                } else {
+                    console.error(`Tab content for ${tab.dataset.tab} not found.`);
+                }
+            });
         });
+    }
+
+    async requestNotificationPermission() {
+        if (!('Notification' in window)) {
+            console.warn('Notifications not supported in this browser.');
+            return false;
+        }
+        if (Notification.permission === 'granted') return true;
+        const permission = await Notification.requestPermission();
+        return permission === 'granted';
+    }
+
+    showNotification(title, options) {
+        if (Notification.permission === 'granted') {
+            new Notification(title, options);
+        }
     }
 }
