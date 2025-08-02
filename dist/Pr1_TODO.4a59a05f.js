@@ -692,12 +692,17 @@ class TodoController {
         this.#controlFilter({
             category: 'all',
             status: 'all',
-            priority: 'all'
+            priority: 'all',
+            recurrence: 'all'
         });
     }
     #controlAddTask(todo) {
-        this.#model.addTodo(todo);
-        this.#renderTasks();
+        try {
+            this.#model.addTodo(todo);
+            this.#renderTasks();
+        } catch (err) {
+            this.#addTaskView.renderMessage(err.message);
+        }
     }
     #controlToggleTask(id) {
         this.#model.toggleTodo(id);
@@ -715,7 +720,8 @@ class TodoController {
         const todos = query ? this.#model.searchTodos(query) : this.#model.filterTodos({
             category: document.querySelector('.filter-category').value,
             status: document.querySelector('.filter-status').value,
-            priority: document.querySelector('.filter-priority').value
+            priority: document.querySelector('.filter-priority').value,
+            recurrence: document.querySelector('.filter-recurrence').value
         });
         this.#taskView.render(todos);
     }
@@ -731,7 +737,8 @@ class TodoController {
         const filters = {
             category: document.querySelector('.filter-category').value,
             status: document.querySelector('.filter-status').value,
-            priority: document.querySelector('.filter-priority').value
+            priority: document.querySelector('.filter-priority').value,
+            recurrence: document.querySelector('.filter-recurrence').value
         };
         const todos = this.#model.filterTodos(filters);
         this.#taskView.render(todos);
@@ -756,8 +763,15 @@ class TodoModel {
         'medium',
         'high'
     ];
+    #recurrenceTypes = [
+        'none',
+        'daily',
+        'weekly',
+        'monthly'
+    ];
     constructor(){
         this.loadTodos();
+        this.#handleRecurrence();
     }
     getTodos() {
         return this.#todos;
@@ -768,22 +782,32 @@ class TodoModel {
     getPriorities() {
         return this.#priorities;
     }
+    getRecurrenceTypes() {
+        return this.#recurrenceTypes;
+    }
     addTodo(todo) {
-        this.#todos.push({
+        if (todo.startTime && todo.endTime && todo.startTime >= todo.endTime) throw new Error('End time must be after start time.');
+        const newTodo = {
             id: crypto.randomUUID(),
             title: todo.title,
             category: todo.category,
             dueDate: todo.dueDate || null,
             priority: todo.priority || 'low',
+            recurrence: todo.recurrence || 'none',
+            startTime: todo.startTime || null,
+            endTime: todo.endTime || null,
             completed: false,
-            createdAt: new Date().toISOString()
-        });
+            createdAt: new Date().toISOString(),
+            lastRecurrence: todo.dueDate ? new Date(todo.dueDate).toISOString() : null
+        };
+        this.#todos.push(newTodo);
         this.#persistTodos();
     }
     toggleTodo(id) {
         const todo = this.#todos.find((t)=>t.id === id);
         if (todo) {
             todo.completed = !todo.completed;
+            if (todo.completed && todo.recurrence !== 'none') this.#generateNextRecurrence(todo);
             this.#persistTodos();
         }
     }
@@ -802,14 +826,49 @@ class TodoModel {
     searchTodos(query) {
         return this.#todos.filter((t)=>t.title.toLowerCase().includes(query.toLowerCase()));
     }
-    filterTodos({ category = 'all', status = 'all', priority = 'all' }) {
+    filterTodos({ category = 'all', status = 'all', priority = 'all', recurrence = 'all' }) {
         let filtered = [
             ...this.#todos
         ];
         if (category !== 'all') filtered = filtered.filter((t)=>t.category === category);
         if (status !== 'all') filtered = filtered.filter((t)=>t.completed === (status === 'completed'));
         if (priority !== 'all') filtered = filtered.filter((t)=>t.priority === priority);
+        if (recurrence !== 'all') filtered = filtered.filter((t)=>t.recurrence === recurrence);
         return filtered.sort((a, b)=>new Date(a.createdAt) - new Date(b.createdAt));
+    }
+    #generateNextRecurrence(todo) {
+        if (!todo.dueDate || todo.recurrence === 'none') return;
+        const currentDue = new Date(todo.dueDate);
+        let nextDue;
+        switch(todo.recurrence){
+            case 'daily':
+                nextDue = new Date(currentDue.setDate(currentDue.getDate() + 1));
+                break;
+            case 'weekly':
+                nextDue = new Date(currentDue.setDate(currentDue.getDate() + 7));
+                break;
+            case 'monthly':
+                nextDue = new Date(currentDue.setMonth(currentDue.getMonth() + 1));
+                break;
+            default:
+                return;
+        }
+        const newTodo = {
+            ...todo,
+            id: crypto.randomUUID(),
+            dueDate: nextDue.toISOString().split('T')[0],
+            completed: false,
+            createdAt: new Date().toISOString(),
+            lastRecurrence: nextDue.toISOString()
+        };
+        this.#todos.push(newTodo);
+    }
+    #handleRecurrence() {
+        const today = new Date().toISOString().split('T')[0];
+        this.#todos.forEach((todo)=>{
+            if (todo.recurrence !== 'none' && todo.dueDate < today && !todo.completed) this.#generateNextRecurrence(todo);
+        });
+        this.#persistTodos();
     }
     #persistTodos() {
         localStorage.setItem('todos', JSON.stringify(this.#todos));
@@ -859,12 +918,17 @@ class TaskView extends (0, _viewJs.View) {
     _parentElement = document.querySelector('.task-list');
     _generateMarkup() {
         return this._data.map((todo)=>`
-            <li class="task-card bg-gray-100 p-4 rounded-lg flex justify-between items-center priority-${todo.priority} ${todo.completed ? 'completed' : ''}" data-id="${todo.id}" draggable="true">
+            <li class="task-card bg-gray-100 p-4 rounded-lg flex justify-between items-center priority-${todo.priority} recurrence-${todo.recurrence} ${todo.completed ? 'completed' : ''}" data-id="${todo.id}" draggable="true">
                 <div class="flex items-center space-x-3">
                     <input type="checkbox" class="toggle-task h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" ${todo.completed ? 'checked' : ''}>
                     <div>
                         <h3 class="text-lg font-semibold ${todo.completed ? 'text-gray-500 line-through' : 'text-gray-800'}">${todo.title}</h3>
-                        <p class="text-sm text-gray-600">Category: ${todo.category} | Priority: ${todo.priority} ${todo.dueDate ? `| Due: ${new Date(todo.dueDate).toLocaleDateString()}` : ''}</p>
+                        <p class="text-sm text-gray-600">
+                            Category: ${todo.category} | Priority: ${todo.priority} 
+                            ${todo.dueDate ? `| Due: ${new Date(todo.dueDate).toLocaleDateString()}` : ''} 
+                            ${todo.recurrence !== 'none' ? `| Recurrence: ${todo.recurrence}` : ''} 
+                            ${todo.startTime || todo.endTime ? `| Time: ${this.formatTime(todo.startTime)} - ${this.formatTime(todo.endTime)}` : ''}
+                        </p>
                     </div>
                 </div>
                 <button class="btn-delete-task text-red-500 hover:text-red-700">
@@ -1056,7 +1120,8 @@ class FilterView extends (0, _viewJs.View) {
                     const filters = {
                         category: this._parentElement.querySelector('.filter-category').value,
                         status: this._parentElement.querySelector('.filter-status').value,
-                        priority: this._parentElement.querySelector('.filter-priority').value
+                        priority: this._parentElement.querySelector('.filter-priority').value,
+                        recurrence: this._parentElement.querySelector('.filter-recurrence').value
                     };
                     handler(filters);
                 } catch (err) {

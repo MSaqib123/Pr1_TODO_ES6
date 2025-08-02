@@ -23,12 +23,16 @@ class TodoController {
         this.#searchView.addHandlerSearch(this.#controlSearch.bind(this));
         this.#filterView.addHandlerFilter(this.#controlFilter.bind(this));
         this.#filterView.addHandlerClearCompleted(this.#controlClearCompleted.bind(this));
-        this.#controlFilter({ category: 'all', status: 'all', priority: 'all' });
+        this.#controlFilter({ category: 'all', status: 'all', priority: 'all', recurrence: 'all' });
     }
 
     #controlAddTask(todo) {
-        this.#model.addTodo(todo);
-        this.#renderTasks();
+        try {
+            this.#model.addTodo(todo);
+            this.#renderTasks();
+        } catch (err) {
+            this.#addTaskView.renderMessage(err.message);
+        }
     }
 
     #controlToggleTask(id) {
@@ -50,7 +54,8 @@ class TodoController {
         const todos = query ? this.#model.searchTodos(query) : this.#model.filterTodos({
             category: document.querySelector('.filter-category').value,
             status: document.querySelector('.filter-status').value,
-            priority: document.querySelector('.filter-priority').value
+            priority: document.querySelector('.filter-priority').value,
+            recurrence: document.querySelector('.filter-recurrence').value
         });
         this.#taskView.render(todos);
     }
@@ -69,7 +74,8 @@ class TodoController {
         const filters = {
             category: document.querySelector('.filter-category').value,
             status: document.querySelector('.filter-status').value,
-            priority: document.querySelector('.filter-priority').value
+            priority: document.querySelector('.filter-priority').value,
+            recurrence: document.querySelector('.filter-recurrence').value
         };
         const todos = this.#model.filterTodos(filters);
         this.#taskView.render(todos);

@@ -43,6 +43,25 @@
                         <option value="high">High</option>
                     </select>
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Recurrence</label>
+                    <select name="recurrence" class="recurrence w-full p-3 mt-1 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="none">None</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Start Time</label>
+                        <input type="time" name="start-time" class="start-time w-full p-3 mt-1 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">End Time</label>
+                        <input type="time" name="end-time" class="end-time w-full p-3 mt-1 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
             </div>
             <button type="submit" class="btn-add-task mt-4 w-full bg-indigo-600 text-white p-3 rounded-lg hover:bg-indigo-700 transition duration-200">
                 Add Task
@@ -68,6 +87,13 @@
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
+            </select>
+            <select class="filter-recurrence p-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="all">All Recurrence</option>
+                <option value="none">None</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
             </select>
             <button class="btn-clear-completed bg-red-500 text-white p-3 rounded-lg hover:bg-red-600 transition duration-200">
                 Clear Completed

@@ -5,12 +5,17 @@ export class TaskView extends View {
 
     _generateMarkup() {
         return this._data.map(todo => `
-            <li class="task-card bg-gray-100 p-4 rounded-lg flex justify-between items-center priority-${todo.priority} ${todo.completed ? 'completed' : ''}" data-id="${todo.id}" draggable="true">
+            <li class="task-card bg-gray-100 p-4 rounded-lg flex justify-between items-center priority-${todo.priority} recurrence-${todo.recurrence} ${todo.completed ? 'completed' : ''}" data-id="${todo.id}" draggable="true">
                 <div class="flex items-center space-x-3">
                     <input type="checkbox" class="toggle-task h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" ${todo.completed ? 'checked' : ''}>
                     <div>
                         <h3 class="text-lg font-semibold ${todo.completed ? 'text-gray-500 line-through' : 'text-gray-800'}">${todo.title}</h3>
-                        <p class="text-sm text-gray-600">Category: ${todo.category} | Priority: ${todo.priority} ${todo.dueDate ? `| Due: ${new Date(todo.dueDate).toLocaleDateString()}` : ''}</p>
+                        <p class="text-sm text-gray-600">
+                            Category: ${todo.category} | Priority: ${todo.priority} 
+                            ${todo.dueDate ? `| Due: ${new Date(todo.dueDate).toLocaleDateString()}` : ''} 
+                            ${todo.recurrence !== 'none' ? `| Recurrence: ${todo.recurrence}` : ''} 
+                            ${todo.startTime || todo.endTime ? `| Time: ${this.formatTime(todo.startTime)} - ${this.formatTime(todo.endTime)}` : ''}
+                        </p>
                     </div>
                 </div>
                 <button class="btn-delete-task text-red-500 hover:text-red-700">

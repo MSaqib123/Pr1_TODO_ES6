@@ -10,7 +10,8 @@ export class FilterView extends View {
                     const filters = {
                         category: this._parentElement.querySelector('.filter-category').value,
                         status: this._parentElement.querySelector('.filter-status').value,
-                        priority: this._parentElement.querySelector('.filter-priority').value
+                        priority: this._parentElement.querySelector('.filter-priority').value,
+                        recurrence: this._parentElement.querySelector('.filter-recurrence').value
                     };
                     handler(filters);
                 } catch (err) {
